@@ -1,0 +1,65 @@
+using System.Collections;
+using UnityEngine;
+
+// Déplace le joueur (XR Origin) en douceur vers une planète ou la vue générale,
+// puis le fait suivre la planète pendant qu'elle tourne sur son orbite.
+public class TravelManager : MonoBehaviour
+{
+    public Transform xrOrigin;        // l'objet XR Origin (le joueur)
+    public Transform overviewPoint;   // la vue générale
+    public float duration = 3f;       // durée du voyage en secondes
+
+    Coroutine current;
+    Transform follow;
+    Vector3 lastFollowPos;
+
+    void Start()
+    {
+        if (xrOrigin == null || overviewPoint == null)
+        {
+            Debug.LogWarning("TravelManager : XR Origin ou OverviewPoint manquant.");
+            enabled = false;
+            return;
+        }
+        xrOrigin.SetPositionAndRotation(overviewPoint.position, overviewPoint.rotation);
+        Follow(overviewPoint);
+    }
+
+    void LateUpdate()
+    {
+        if (follow == null) return;
+        xrOrigin.position += follow.position - lastFollowPos;
+        lastFollowPos = follow.position;
+    }
+
+    void Follow(Transform t)
+    {
+        follow = t;
+        if (t != null) lastFollowPos = t.position;
+    }
+
+    public void GoTo(Transform target)
+    {
+        if (xrOrigin == null || target == null) return;
+        if (current != null) StopCoroutine(current);
+        current = StartCoroutine(Fly(target));
+    }
+
+    IEnumerator Fly(Transform target)
+    {
+        Follow(null);
+        Vector3 p0 = xrOrigin.position;
+        Quaternion r0 = xrOrigin.rotation;
+        float time = Mathf.Max(duration, 0.1f);
+        for (float t = 0f; t < 1f; t += Time.deltaTime / time)
+        {
+            float k = Mathf.SmoothStep(0f, 1f, t);
+            xrOrigin.SetPositionAndRotation(
+                Vector3.Lerp(p0, target.position, k),
+                Quaternion.Slerp(r0, target.rotation, k));
+            yield return null;
+        }
+        xrOrigin.SetPositionAndRotation(target.position, target.rotation);
+        Follow(target);
+    }
+}

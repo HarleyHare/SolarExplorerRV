@@ -1,0 +1,11 @@
+MODELES 3D (facultatif)
+
+Mets ici les fichiers créés avec Blender (BlenderSources/make_models.py) :
+   Planete.fbx   -> utilisé pour le Soleil et les 8 planètes
+   Saturne.fbx   -> Saturne avec ses anneaux
+
+Si ces fichiers sont absents, le projet utilise des sphères Unity à la place.
+Après avoir ajouté/changé un modèle : relance Solar Explorer > 1 - Construire la scène.
+
+Si une planète apparaît géante ou minuscule, clique sur le FBX dans Unity et règle
+"Scale Factor" (onglet Model de l'Inspector) pour que la sphère ait un rayon de 1 m.

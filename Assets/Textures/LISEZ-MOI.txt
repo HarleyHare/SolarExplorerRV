@@ -1,0 +1,21 @@
+TEXTURES (facultatif mais recommandé : c'est ce qui rend les planètes belles)
+
+1. Va sur https://www.solarsystemscope.com/textures/ et télécharge les images en version 2K.
+2. Mets-les ici, dans Assets/Textures, avec EXACTEMENT ces noms (le nom, pas l'extension) :
+
+   2k_sun                  -> le Soleil
+   2k_mercury              -> Mercure
+   2k_venus_surface        -> Vénus
+   2k_earth_daymap         -> Terre
+   2k_mars                 -> Mars
+   2k_jupiter              -> Jupiter
+   2k_saturn               -> Saturne
+   2k_saturn_ring_alpha    -> anneaux de Saturne (PNG)
+   2k_uranus               -> Uranus
+   2k_neptune              -> Neptune
+   2k_stars_milky_way      -> ciel étoilé
+
+3. Dans Unity : menu Solar Explorer > 1 - Construire la scène (relance-le après avoir ajouté les textures).
+
+Sans textures, les planètes ont une couleur de secours : le projet marche quand même.
+Pensez à citer la source dans CREDITS.md (licence CC BY 4.0).
