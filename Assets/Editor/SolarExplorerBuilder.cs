@@ -18,6 +18,7 @@ using UnityEngine.UI;
 public static class SolarExplorerBuilder
 {
     const string ModelsPath = "Assets/Models/";
+    const float PlanetGlow = 0.3f;   // auto-illumination des planètes (0 = aucune, 1 = très lumineux)
 
     class PData
     {
@@ -38,21 +39,21 @@ public static class SolarExplorerBuilder
 
     static readonly PData[] Data = new PData[]
     {
-        Mk("Mercure", "2k_mercury", 4879, 58, "88 jours", 14, 0.4f, 5f, 10f, new Color(0.6f, 0.58f, 0.55f),
+        Mk("Mercure", "2k_mercury", 4879, 58, "88 jours", 24, 1.5f, 5f, 10f, new Color(0.6f, 0.58f, 0.55f),
            "La plus petite planète et la plus proche du Soleil. Sa surface est couverte de cratères."),
-        Mk("Vénus", "2k_venus_surface", 12104, 108, "225 jours", 20, 0.9f, 3.5f, -5f, new Color(0.9f, 0.75f, 0.5f),
+        Mk("Vénus", "2k_venus_surface", 12104, 108, "225 jours", 33, 2.7f, 3.5f, -5f, new Color(0.9f, 0.75f, 0.5f),
            "La planète la plus chaude du système solaire. Elle tourne à l'envers."),
-        Mk("Terre", "2k_earth_daymap", 12742, 150, "365 jours", 27, 1f, 2.5f, 40f, new Color(0.2f, 0.4f, 0.8f),
+        Mk("Terre", "2k_earth_daymap", 12742, 150, "365 jours", 42, 3.0f, 2.5f, 40f, new Color(0.2f, 0.4f, 0.8f),
            "La seule planète connue qui abrite la vie. Environ 71 % de sa surface est de l'eau."),
-        Mk("Mars", "2k_mars", 6779, 228, "687 jours", 34, 0.55f, 2f, 38f, new Color(0.8f, 0.35f, 0.2f),
+        Mk("Mars", "2k_mars", 6779, 228, "687 jours", 51, 2.0f, 2f, 38f, new Color(0.8f, 0.35f, 0.2f),
            "La planète rouge : une surface rougeâtre avec des cratères et le plus grand volcan connu."),
-        Mk("Jupiter", "2k_jupiter", 139820, 778, "11,9 ans", 55, 4f, 1f, 80f, new Color(0.8f, 0.65f, 0.5f),
+        Mk("Jupiter", "2k_jupiter", 139820, 778, "11,9 ans", 70, 9.0f, 1f, 80f, new Color(0.8f, 0.65f, 0.5f),
            "La plus grande planète : une géante gazeuse avec une tempête géante, la Grande Tache rouge."),
-        Mk("Saturne", "2k_saturn", 116460, 1434, "29,5 ans", 75, 3.4f, 0.7f, 70f, new Color(0.9f, 0.8f, 0.55f),
+        Mk("Saturne", "2k_saturn", 116460, 1434, "29,5 ans", 98, 7.5f, 0.7f, 70f, new Color(0.9f, 0.8f, 0.55f),
            "Célèbre pour ses anneaux faits de glace et de roche. Elle est moins dense que l'eau."),
-        Mk("Uranus", "2k_uranus", 50724, 2871, "84 ans", 95, 2f, 0.5f, -50f, new Color(0.6f, 0.85f, 0.9f),
+        Mk("Uranus", "2k_uranus", 50724, 2871, "84 ans", 124, 5.0f, 0.5f, -50f, new Color(0.6f, 0.85f, 0.9f),
            "Une géante de glace qui tourne couchée sur le côté."),
-        Mk("Neptune", "2k_neptune", 49244, 4495, "165 ans", 110, 1.9f, 0.4f, 55f, new Color(0.25f, 0.35f, 0.85f),
+        Mk("Neptune", "2k_neptune", 49244, 4495, "165 ans", 140, 5.0f, 0.4f, 55f, new Color(0.25f, 0.35f, 0.85f),
            "La planète la plus lointaine, avec les vents les plus rapides du système solaire.")
     };
 
@@ -95,6 +96,14 @@ public static class SolarExplorerBuilder
         }
         Camera cam = origin != null ? origin.GetComponentInChildren<Camera>() : Camera.main;
 
+        // On est dans l'espace : on masque la salle de démonstration du modèle VR
+        // (sol quadrillé, flèches, objets à attraper). Réversible : cocher l'objet dans la Hierarchy.
+        foreach (string n in new[] { "Environment", "Interactables" })
+        {
+            GameObject g = GameObject.Find(n);
+            if (g != null) g.SetActive(false);
+        }
+
         // Ciel étoilé
         Texture2D stars = LoadTex("2k_stars_milky_way");
         if (stars != null)
@@ -110,15 +119,16 @@ public static class SolarExplorerBuilder
             RenderSettings.skybox = null;
             if (cam != null) { cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = Color.black; }
         }
+        RenderSettings.fog = false;   // le modèle VR active un brouillard gris : il cachait les planètes
         RenderSettings.ambientMode = AmbientMode.Flat;
-        RenderSettings.ambientLight = new Color(0.35f, 0.35f, 0.4f);
+        RenderSettings.ambientLight = new Color(0.55f, 0.55f, 0.6f);   // plus clair : les planètes lointaines restent visibles
 
         // Le Soleil
         GameObject root = new GameObject("SolarSystem");
         GameObject sunRoot = new GameObject("Soleil");
         sunRoot.transform.SetParent(root.transform, false);
         Material sunMat = MakeMat("Soleil", new Color(1f, 0.8f, 0.2f), "2k_sun", true);
-        Transform sunModel = MakeModel(sunRoot.transform, 8f, sunMat, null, false);
+        Transform sunModel = MakeModel(sunRoot.transform, 15f, sunMat, null, false);
         UnityEngine.Object.DestroyImmediate(sunModel.GetComponent<Collider>());
 
         GameObject lg = new GameObject("SunLight");
@@ -126,7 +136,7 @@ public static class SolarExplorerBuilder
         Light li = lg.AddComponent<Light>();
         li.type = LightType.Point;
         li.range = 500f;
-        li.intensity = IsURP() ? 300f : 2f;   // à ajuster à l'oeil
+        li.intensity = IsURP() ? 1000f : 2f;   // à ajuster à l'oeil
         li.shadows = LightShadows.None;
         li.color = new Color(1f, 0.96f, 0.9f);
 
@@ -170,7 +180,7 @@ public static class SolarExplorerBuilder
 
         // Vue générale
         GameObject ov = new GameObject("OverviewPoint");
-        ov.transform.position = new Vector3(0f, 100f, -150f);
+        ov.transform.position = new Vector3(0f, 35f, -110f);   // proche : en VR on tourne la tête pour voir tout le système
 
         // Managers
         GameObject mg = new GameObject("Managers");
@@ -308,8 +318,17 @@ public static class SolarExplorerBuilder
         if (emissive)
         {
             m.EnableKeyword("_EMISSION");
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive; // sinon URP retire l'émission
             m.SetColor("_EmissionColor", tex != null ? Color.white : color * 1.5f);
             if (tex != null) m.SetTexture("_EmissionMap", tex);
+        }
+        else if (tex != null)
+        {
+            // Légère auto-illumination : la texture reste lisible de loin et du côté nuit
+            m.EnableKeyword("_EMISSION");
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            m.SetColor("_EmissionColor", new Color(PlanetGlow, PlanetGlow, PlanetGlow));
+            m.SetTexture("_EmissionMap", tex);
         }
         return Save(m, "M_" + name);
     }
