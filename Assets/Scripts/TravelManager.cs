@@ -1,13 +1,16 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion.Movement;
 
 // Déplace le joueur (XR Origin) en douceur vers une planète ou la vue générale,
 // puis le fait suivre la planète pendant qu'elle tourne sur son orbite.
+// Au démarrage : coupe la gravité (pas de sol dans l'espace) et active le vol libre.
 public class TravelManager : MonoBehaviour
 {
     public Transform xrOrigin;        // l'objet XR Origin (le joueur)
     public Transform overviewPoint;   // la vue générale
     public float duration = 3f;       // durée du voyage en secondes
+    public float freeMoveSpeed = 10f; // vitesse du déplacement libre au joystick (m/s)
 
     Coroutine current;
     Transform follow;
@@ -22,6 +25,7 @@ public class TravelManager : MonoBehaviour
             return;
         }
         DisableGravity();
+        EnableFreeFlight();
         xrOrigin.SetPositionAndRotation(overviewPoint.position, overviewPoint.rotation);
         Follow(overviewPoint);
     }
@@ -37,6 +41,18 @@ public class TravelManager : MonoBehaviour
                 b.enabled = false;
                 Debug.Log("TravelManager : gravité du joueur désactivée.");
             }
+        }
+    }
+
+    // Déplacement libre : le joystick gauche fait avancer dans la direction
+    // du regard, y compris vers le haut et vers le bas.
+    void EnableFreeFlight()
+    {
+        foreach (ContinuousMoveProvider move in xrOrigin.GetComponentsInChildren<ContinuousMoveProvider>(true))
+        {
+            move.enableFly = true;
+            move.moveSpeed = freeMoveSpeed;
+            Debug.Log("TravelManager : vol libre activé (vitesse " + freeMoveSpeed + " m/s).");
         }
     }
 
