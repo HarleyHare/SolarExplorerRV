@@ -21,8 +21,23 @@ public class TravelManager : MonoBehaviour
             enabled = false;
             return;
         }
+        DisableGravity();
         xrOrigin.SetPositionAndRotation(overviewPoint.position, overviewPoint.rotation);
         Follow(overviewPoint);
+    }
+
+    // Dans l'espace, pas de sol : on coupe la gravité du joueur VR,
+    // sinon il tombe sans fin depuis la vue générale.
+    void DisableGravity()
+    {
+        foreach (MonoBehaviour b in xrOrigin.GetComponentsInChildren<MonoBehaviour>(true))
+        {
+            if (b != null && b.GetType().Name == "GravityProvider")
+            {
+                b.enabled = false;
+                Debug.Log("TravelManager : gravité du joueur désactivée.");
+            }
+        }
     }
 
     void LateUpdate()
