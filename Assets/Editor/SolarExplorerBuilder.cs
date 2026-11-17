@@ -183,7 +183,9 @@ public static class SolarExplorerBuilder
         canvas.renderMode = RenderMode.WorldSpace;
         canvas.worldCamera = cam;
         RectTransform crt = cg.GetComponent<RectTransform>();
-        crt.sizeDelta = new Vector2(600f, 400f);
+        // A slightly taller panel gives the planet facts more room while keeping
+        // all four controls on a single row at the bottom.
+        crt.sizeDelta = new Vector2(650f, 440f);
         crt.localScale = Vector3.one * 0.002f;
         crt.position = ov.transform.position + new Vector3(0f, 0f, 2f);
         Type tdr = FindXRType("TrackedDeviceGraphicRaycaster");
@@ -194,7 +196,7 @@ public static class SolarExplorerBuilder
         Stretch(bg.GetComponent<RectTransform>());
         bg.GetComponent<Image>().color = new Color(0f, 0f, 0.05f, 0.8f);
 
-        TMP_Text title = MakeText(cg.transform, "TitleText", 44, TextAlignmentOptions.Center);
+        TMP_Text title = MakeText(cg.transform, "TitleText", 48, TextAlignmentOptions.Center);
         RectTransform trt = title.rectTransform;
         trt.anchorMin = new Vector2(0f, 1f);
         trt.anchorMax = new Vector2(1f, 1f);
@@ -202,12 +204,12 @@ public static class SolarExplorerBuilder
         trt.sizeDelta = new Vector2(-40f, 70f);
         trt.anchoredPosition = new Vector2(0f, -12f);
 
-        TMP_Text body = MakeText(cg.transform, "BodyText", 26, TextAlignmentOptions.TopLeft);
+        TMP_Text body = MakeText(cg.transform, "BodyText", 28, TextAlignmentOptions.TopLeft);
         RectTransform brt = body.rectTransform;
         brt.anchorMin = Vector2.zero;
         brt.anchorMax = Vector2.one;
-        brt.offsetMin = new Vector2(25f, 90f);
-        brt.offsetMax = new Vector2(-25f, -85f);
+        brt.offsetMin = new Vector2(25f, 92f);
+        brt.offsetMax = new Vector2(-25f, -92f);
 
         MakeButton(cg.transform, "Visiter", 0, mgr.VisitSelected);
         MakeButton(cg.transform, "Vue générale", 1, mgr.GoToOverview);
