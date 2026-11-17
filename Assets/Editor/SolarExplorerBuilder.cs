@@ -111,7 +111,7 @@ public static class SolarExplorerBuilder
             if (cam != null) { cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = Color.black; }
         }
         RenderSettings.ambientMode = AmbientMode.Flat;
-        RenderSettings.ambientLight = new Color(0.35f, 0.35f, 0.4f);
+        RenderSettings.ambientLight = new Color(0.55f, 0.55f, 0.6f);   // plus clair : les planètes lointaines restent visibles
 
         // Le Soleil
         GameObject root = new GameObject("SolarSystem");
