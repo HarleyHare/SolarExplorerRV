@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 
 // Ajoute le menu "Solar Explorer" dans Unity.
@@ -19,6 +20,7 @@ public static class SolarExplorerBuilder
 {
     const string ModelsPath = "Assets/Models/";
     const float PlanetGlow = 0.3f;   // auto-illumination des planètes (0 = aucune, 1 = très lumineux)
+    const float SunGlow = 2.5f;      // éclat du Soleil : au-dessus de 1, le Bloom lui ajoute un halo
 
     class PData
     {
@@ -104,6 +106,9 @@ public static class SolarExplorerBuilder
             if (g != null) g.SetActive(false);
         }
 
+        // Halo lumineux autour du Soleil (effet Bloom)
+        AddSunHalo(cam);
+
         // Ciel étoilé
         Texture2D stars = LoadTex("2k_stars_milky_way");
         if (stars != null)
@@ -153,6 +158,7 @@ public static class SolarExplorerBuilder
             Material rm = saturn ? MakeRingMat() : null;
             Transform model = MakeModel(pr.transform, d.scale, pm, rm, saturn);
             if (saturn) model.localRotation = Quaternion.Euler(0f, 0f, 20f);
+            if (d.name == "Terre") AddClouds(model);
 
             GameObject vp = new GameObject("ViewPoint");
             vp.transform.SetParent(pr.transform, false);
@@ -184,6 +190,14 @@ public static class SolarExplorerBuilder
 
         // Managers
         GameObject mg = new GameObject("Managers");
+        // Son d'ambiance : joue en boucle Assets/Audio/ambiance.mp3 s'il existe
+        AudioClip clip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/ambiance.mp3");
+        if (clip != null)
+        {
+            AudioSource a = mg.AddComponent<AudioSource>();
+            a.clip = clip; a.loop = true; a.playOnAwake = true; a.volume = 0.4f;
+            a.spatialBlend = 0f;   // son 2D : entendu partout, pas de direction
+        }
         TravelManager travel = mg.AddComponent<TravelManager>();
         SolarSystemManager mgr = mg.AddComponent<SolarSystemManager>();
 
@@ -287,6 +301,103 @@ public static class SolarExplorerBuilder
         return null;
     }
 
+    // ---------- Nuages de la Terre ----------
+    // Une sphère transparente 2 % plus grande que la Terre, avec la texture des nuages.
+    // Pas de collider : pointer la Terre la sélectionne toujours.
+    static void AddClouds(Transform earthModel)
+    {
+        if (!IsURP()) return;
+        Texture2D tex = PrepareCloudTexture();
+        if (tex == null) return;
+
+        GameObject c = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        c.name = "Nuages";
+        c.transform.SetParent(earthModel, false);
+        c.transform.localScale = Vector3.one * 2f * 1.02f;   // sphère Unity de diamètre 1 -> rayon 1,02
+        UnityEngine.Object.DestroyImmediate(c.GetComponent<Collider>());
+        Renderer r = c.GetComponent<Renderer>();
+        r.sharedMaterial = MakeCloudMat(tex);
+        r.shadowCastingMode = ShadowCastingMode.Off;
+    }
+
+    // L'image des nuages est en noir et blanc : on lui fait utiliser le gris comme transparence
+    // (blanc = nuage opaque, noir = transparent).
+    static Texture2D PrepareCloudTexture()
+    {
+        Texture2D tex = LoadTex("2k_earth_clouds");
+        if (tex == null) return null;
+        string p = AssetDatabase.GetAssetPath(tex);
+        TextureImporter ti = AssetImporter.GetAtPath(p) as TextureImporter;
+        if (ti != null && (ti.alphaSource != TextureImporterAlphaSource.FromGrayScale || !ti.alphaIsTransparency))
+        {
+            ti.alphaSource = TextureImporterAlphaSource.FromGrayScale;
+            ti.alphaIsTransparency = true;
+            ti.SaveAndReimport();
+            tex = AssetDatabase.LoadAssetAtPath<Texture2D>(p);
+        }
+        return tex;
+    }
+
+    static Material MakeCloudMat(Texture2D tex)
+    {
+        Material m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        m.SetTexture("_BaseMap", tex);
+        m.SetTexture("_MainTex", tex);
+        m.SetColor("_BaseColor", Color.white);
+        m.SetFloat("_Smoothness", 0f);
+        // Matériau transparent (mélange alpha classique)
+        m.SetFloat("_Surface", 1f);
+        m.SetFloat("_Blend", 0f);
+        m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+        m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+        m.SetFloat("_SrcBlendAlpha", (float)UnityEngine.Rendering.BlendMode.One);
+        m.SetFloat("_DstBlendAlpha", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+        m.SetFloat("_ZWrite", 0f);
+        m.SetOverrideTag("RenderType", "Transparent");
+        m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+        m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+        return Save(m, "M_Nuages");
+    }
+
+    // ---------- Halo du Soleil ----------
+    // Un volume global avec un effet Bloom : ce qui dépasse une luminosité de 1 (le Soleil) rayonne.
+    // Pour le désactiver : décocher l'objet "Halo" dans la Hierarchy.
+    static void AddSunHalo(Camera cam)
+    {
+        if (!IsURP()) return;
+        GameObject old = GameObject.Find("Halo");
+        if (old != null) UnityEngine.Object.DestroyImmediate(old);
+
+        Directory.CreateDirectory("Assets/Generated");
+        string p = "Assets/Generated/HaloProfile.asset";
+        AssetDatabase.DeleteAsset(p);
+        VolumeProfile profile = ScriptableObject.CreateInstance<VolumeProfile>();
+        AssetDatabase.CreateAsset(profile, p);
+        Bloom bloom = profile.Add<Bloom>(true);
+        bloom.threshold.Override(1f);
+        bloom.intensity.Override(1.5f);
+        bloom.scatter.Override(0.7f);
+        bloom.name = "Bloom";
+        AssetDatabase.AddObjectToAsset(bloom, profile);
+        EditorUtility.SetDirty(profile);
+        AssetDatabase.SaveAssets();
+
+        GameObject h = new GameObject("Halo");
+        Volume v = h.AddComponent<Volume>();
+        v.isGlobal = true;
+        v.priority = 10f;
+        v.sharedProfile = profile;
+
+        // Le post-traitement doit être activé sur la caméra du joueur pour que le Bloom s'affiche
+        if (cam != null)
+        {
+            UniversalAdditionalCameraData data = cam.GetComponent<UniversalAdditionalCameraData>();
+            if (data == null) data = cam.gameObject.AddComponent<UniversalAdditionalCameraData>();
+            data.renderPostProcessing = true;
+            EditorUtility.SetDirty(data);
+        }
+    }
+
     static Texture2D LoadTex(string name)
     {
         if (string.IsNullOrEmpty(name)) return null;
@@ -319,7 +430,7 @@ public static class SolarExplorerBuilder
         {
             m.EnableKeyword("_EMISSION");
             m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive; // sinon URP retire l'émission
-            m.SetColor("_EmissionColor", tex != null ? Color.white : color * 1.5f);
+            m.SetColor("_EmissionColor", tex != null ? Color.white * SunGlow : color * 1.5f);
             if (tex != null) m.SetTexture("_EmissionMap", tex);
         }
         else if (tex != null)
